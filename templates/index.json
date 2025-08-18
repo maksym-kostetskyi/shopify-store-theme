@@ -9,12 +9,15 @@
  */
 {
   "sections": {
-    "main": {
-      "type": "hello-world",
-      "settings": {}
+    "featured_products": {
+      "type": "featured-products",
+      "settings": {
+        "heading": "Featured Products",
+        "description": "Click on any product to see the new Swiper gallery in action with multiple product images",
+        "products_to_show": 8,
+        "show_view_all": true
+      }
     }
   },
-  "order": [
-    "main"
-  ]
+  "order": ["featured_products"]
 }
