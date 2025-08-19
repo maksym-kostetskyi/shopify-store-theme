@@ -39,7 +39,7 @@
             <div class="swiper thumbnail-swiper">
               <div class="swiper-wrapper">
                 {% for image in product.images %}
-                  <div class="swiper-slide">
+                  <div class="swiper-slide" data-variant-colors="{% for variant in product.variants %}{% if variant.featured_image.id == image.id %}{{ variant.option1 | downcase | handle }}{% unless forloop.last %},{% endunless %}{% endif %}{% endfor %}">
                     <div class="thumbnail-wrapper {% if forloop.first %}active{% endif %}">
                       <img 
                         src="{{ image | image_url: width: 150 }}" 
@@ -47,6 +47,7 @@
                         class="thumbnail-image"
                         data-main-image="{{ image | image_url: width: 800 }}"
                         data-index="{{ forloop.index0 }}"
+                        data-variant-colors="{% for variant in product.variants %}{% if variant.featured_image.id == image.id %}{{ variant.option1 | downcase | handle }}{% unless forloop.last %},{% endunless %}{% endif %}{% endfor %}"
                         loading="lazy"
                         width="150"
                         height="150"
@@ -103,10 +104,11 @@
             {% if product.variants.size > 1 %}
               <div class="variant-selector">
                 <label for="variant-select">Options:</label>
-                <select name="id" id="variant-select" class="variant-select">
+                <select name="id" id="variant-select" class="variant-select" data-variant-selector>
                   {% for variant in product.variants %}
                     <option
                       value="{{ variant.id }}"
+                      data-variant-color="{{ variant.option1 | downcase | handle }}"
                       {% if variant == current_variant %}selected="selected"{% endif %}
                       {% unless variant.available %}disabled{% endunless %}
                     >
@@ -295,10 +297,13 @@
     display: block;
     border-radius: 6px;
   }
-  
-  /* thumbnail pagination removed */
-  
-  /* Product Info Section */
+
+  /* Hide filtered variant images */
+  .swiper-slide.hidden-variant {
+    display: none !important;
+  }
+
+  /* thumbnail pagination removed */  /* Product Info Section */
   .product-info-section {
     padding: 1rem 0;
   }
@@ -372,6 +377,8 @@
     thumbnailSwiper: null,
     currentIndex: 0,
     totalImages: 0,
+    allImages: [], // Store all images for filtering
+    currentVariantColor: null,
     
     init: function() {
       const productPage = document.querySelector('.product-page');
@@ -380,7 +387,8 @@
       }
       
       this.mainImage = document.querySelector('#main-product-image');
-      this.totalImages = document.querySelectorAll('.thumbnail-image').length;
+      this.allImages = Array.from(document.querySelectorAll('.thumbnail-image'));
+      this.totalImages = this.allImages.length;
       
       // Load Swiper.js script if not already available
       if (!window.Swiper) {
@@ -396,6 +404,9 @@
       } else {
         this.createSwiper(productPage);
       }
+      
+      // Setup variant selector change
+      this.setupVariantSelector();
     },
     
     createSwiper: function(productPage) {
@@ -446,15 +457,27 @@
 
         if (nextBtn) {
             nextBtn.addEventListener('click', () => {
-                if (this.currentIndex < this.totalImages - 1) {
-                    this.switchToImage(this.currentIndex + 1);
+                const visibleImages = this.getVisibleImages();
+                const currentVisibleIndex = visibleImages.findIndex(img => 
+                  parseInt(img.dataset.index) === this.currentIndex
+                );
+                
+                if (currentVisibleIndex < visibleImages.length - 1) {
+                    const nextVisibleIndex = parseInt(visibleImages[currentVisibleIndex + 1].dataset.index);
+                    this.switchToImage(nextVisibleIndex);
                 }
             });
         }
         if (prevBtn) {
             prevBtn.addEventListener('click', () => {
-                if (this.currentIndex > 0) {
-                    this.switchToImage(this.currentIndex - 1);
+                const visibleImages = this.getVisibleImages();
+                const currentVisibleIndex = visibleImages.findIndex(img => 
+                  parseInt(img.dataset.index) === this.currentIndex
+                );
+                
+                if (currentVisibleIndex > 0) {
+                    const prevVisibleIndex = parseInt(visibleImages[currentVisibleIndex - 1].dataset.index);
+                    this.switchToImage(prevVisibleIndex);
                 }
             });
         }
@@ -509,19 +532,94 @@
         const prevBtn = document.querySelector('.main-image-prev');
         if (!nextBtn || !prevBtn) return;
 
-        // Handle Previous Button
-        if (this.currentIndex === 0) {
-            prevBtn.classList.add('swiper-button-disabled');
+        const visibleImages = this.getVisibleImages();
+        const currentVisibleIndex = visibleImages.findIndex(img => 
+          parseInt(img.dataset.index) === this.currentIndex
+        );
+        
+        // Disable prev if at first visible image
+        if (currentVisibleIndex <= 0) {
+          prevBtn.style.opacity = '0.3';
+          prevBtn.style.pointerEvents = 'none';
         } else {
-            prevBtn.classList.remove('swiper-button-disabled');
+          prevBtn.style.opacity = '1';
+          prevBtn.style.pointerEvents = 'auto';
         }
+        
+        // Disable next if at last visible image
+        if (currentVisibleIndex >= visibleImages.length - 1) {
+          nextBtn.style.opacity = '0.3';
+          nextBtn.style.pointerEvents = 'none';
+        } else {
+          nextBtn.style.opacity = '1';
+          nextBtn.style.pointerEvents = 'auto';
+        }
+    },
 
-        // Handle Next Button
-        if (this.currentIndex === this.totalImages - 1) {
-            nextBtn.classList.add('swiper-button-disabled');
+    // Setup variant selector to filter images by color
+    setupVariantSelector: function() {
+      const variantSelector = document.querySelector('[data-variant-selector]');
+      if (!variantSelector) return;
+
+      variantSelector.addEventListener('change', (e) => {
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        const variantColor = selectedOption.dataset.variantColor;
+        this.filterImagesByColor(variantColor);
+      });
+
+      // Set initial filter based on current selection
+      const currentOption = variantSelector.options[variantSelector.selectedIndex];
+      if (currentOption && currentOption.dataset.variantColor) {
+        this.filterImagesByColor(currentOption.dataset.variantColor);
+      }
+    },
+
+    // Filter images by variant color
+    filterImagesByColor: function(color) {
+      this.currentVariantColor = color;
+      const slides = document.querySelectorAll('.swiper-slide');
+      
+      slides.forEach(slide => {
+        const slideColors = slide.dataset.variantColors;
+        const shouldShow = !color || !slideColors || slideColors.includes(color);
+        
+        if (shouldShow) {
+          slide.style.display = 'block';
+          slide.classList.remove('hidden-variant');
         } else {
-            nextBtn.classList.remove('swiper-button-disabled');
+          slide.style.display = 'none';
+          slide.classList.add('hidden-variant');
         }
+      });
+
+      // Rebuild Swiper to handle filtered slides
+      if (this.thumbnailSwiper) {
+        this.thumbnailSwiper.update();
+        
+        // Switch to first visible image if current is hidden
+        const visibleImages = this.getVisibleImages();
+        if (visibleImages.length > 0) {
+          const currentImageVisible = visibleImages.some(img => 
+            parseInt(img.dataset.index) === this.currentIndex
+          );
+          
+          if (!currentImageVisible) {
+            // Switch to first visible image
+            const firstVisibleIndex = parseInt(visibleImages[0].dataset.index);
+            this.switchToImage(firstVisibleIndex);
+          }
+        }
+      }
+      
+      this.updateNavState();
+    },
+
+    // Get currently visible (non-filtered) images
+    getVisibleImages: function() {
+      return this.allImages.filter(img => {
+        const slide = img.closest('.swiper-slide');
+        return slide && !slide.classList.contains('hidden-variant');
+      });
     }
   };
 
