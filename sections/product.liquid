@@ -1,29 +1,23 @@
 {% comment %}
   Product page with main image, thumbnail gallery, and product info
-  Features customizable Swiper gallery for thumbnails
+  Features a responsive and robust Swiper.js gallery for thumbnails.
+  - Correctly handles responsive breakpoints for thumbnails.
+  - Slides one thumbnail at a time without cropping.
+  - Automatically disables navigation buttons at the start/end.
 {% endcomment %}
 
 <div class="product-page" 
      data-section-id="{{ section.id }}"
      data-slides-desktop="{{ section.settings.slides_per_view_desktop | default: 4 }}"
-     data-slides-tablet="{{ section.settings.slides_per_view_tablet | default: 3 }}"
-     data-slides-mobile="{{ section.settings.slides_per_view_mobile | default: 2 }}"
-     data-enable-pagination="{{ section.settings.enable_pagination | default: true }}"
+  data-slides-tablet="{{ section.settings.slides_per_view_tablet | default: 3 }}"
+  data-slides-mobile="{{ section.settings.slides_per_view_mobile | default: 2 }}"
      data-enable-navigation="{{ section.settings.enable_navigation | default: true }}"
      data-space-between="{{ section.settings.space_between_slides | default: 10 }}">
   
   <div class="product-container">
-    <!-- Product Images Section -->
     <div class="product-images-section">
-      <!-- Debug info -->
-      {% comment %}
-      Debug: Product ID: {{ product.id }}
-      Debug: Product Images Count: {{ product.images.size }}
-      Debug: Has Featured Image: {{ product.featured_image != blank }}
-      {% endcomment %}
       
       {% if product and product.images.size > 0 %}
-        <!-- Main Image -->
         <div class="product-main-image">
           <img 
             id="main-product-image"
@@ -35,12 +29,11 @@
             loading="eager"
           >
           {% if section.settings.enable_navigation and product.images.size > 1 %}
-            <div class="main-image-prev" onclick="window.productGallery.prevImage()" data-direction="prev"></div>
-            <div class="main-image-next" onclick="window.productGallery.nextImage()" data-direction="next"></div>
+            <div class="main-image-prev" data-direction="prev"></div>
+            <div class="main-image-next" data-direction="next"></div>
           {% endif %}
         </div>
         
-        <!-- Thumbnail Gallery -->
         {% if product.images.size > 1 %}
           <div class="product-thumbnails">
             <div class="swiper thumbnail-swiper">
@@ -70,7 +63,6 @@
           </div>
         {% endif %}
       {% else %}
-        <!-- Placeholder for no images -->
         <div class="product-image-placeholder">
           <div class="placeholder-wrapper">
             {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
@@ -86,7 +78,6 @@
       {% endif %}
     </div>
 
-    <!-- Product Info Section -->
     <div class="product-info-section">
       <div class="product-info">
         <h1 class="product-title">{{ product.title }}</h1>
@@ -172,13 +163,13 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-width: 450px; /* Constrain the width of the image column */
+    width: 100%;
   }
   
   .product-main-image {
     width: 100%;
-    max-width: 450px;
     height: auto;
-    max-height: 450px;
     overflow: hidden;
     border-radius: 12px;
     background: #f5f5f5;
@@ -186,13 +177,12 @@
     align-items: center;
     justify-content: center;
     position: relative;
+    aspect-ratio: 1 / 1;
   }
   
   .main-image {
     width: 100%;
-    max-width: 450px;
-    height: auto;
-    max-height: 450px;
+    height: 100%;
     object-fit: contain;
     cursor: zoom-in;
     border-radius: 8px;
@@ -224,21 +214,8 @@
   
   .product-main-image:hover .main-image-prev,
   .product-main-image:hover .main-image-next {
-    opacity: 1 !important;
-    pointer-events: auto !important;
-  }
-  
-  /* Temporary: Make buttons always visible for debugging */
-  .main-image-prev,
-  .main-image-next {
-    opacity: 1 !important;
-    pointer-events: auto !important;
-  }
-  
-  .product-main-image:hover .main-image-prev[style*="opacity: 0.3"],
-  .product-main-image:hover .main-image-next[style*="opacity: 0.3"] {
-    opacity: 0.3 !important;
-    pointer-events: none !important;
+    opacity: 1;
+    pointer-events: auto;
   }
   
   .main-image-prev:hover,
@@ -263,24 +240,17 @@
     content: '→';
   }
   
-  /* Disabled state for navigation buttons */
-  .main-image-prev[style*="opacity: 0.3"],
-  .main-image-next[style*="opacity: 0.3"] {
+  /* Swiper's default disabled class for navigation */
+  .main-image-prev.swiper-button-disabled,
+  .main-image-next.swiper-button-disabled {
+    opacity: 0.3 !important;
     cursor: not-allowed;
-    background: rgba(200, 200, 200, 0.9);
-    color: #999;
-  }
-  
-  .main-image-prev[style*="opacity: 0.3"]:hover,
-  .main-image-next[style*="opacity: 0.3"]:hover {
-    background: rgba(200, 200, 200, 0.9);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    pointer-events: none !important;
   }
   
   /* Thumbnail Gallery */
   .product-thumbnails {
     width: 100%;
-    max-width: 450px;
     position: relative;
     overflow: hidden;
   }
@@ -290,20 +260,15 @@
     padding: 0;
     overflow: hidden;
   }
-  
-  .thumbnail-swiper .swiper-wrapper {
-    display: flex;
-    flex-direction: row;
-  }
-  
+
   .thumbnail-swiper .swiper-slide {
-    width: 120px !important;
     flex-shrink: 0;
   }
   
   .thumbnail-wrapper {
-    width: 120px;
-    height: 120px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
     border-radius: 8px;
     overflow: hidden;
     border: 2px solid transparent;
@@ -331,138 +296,39 @@
     border-radius: 6px;
   }
   
-  /* Hide thumbnail navigation - we use main image navigation instead */
-  .thumbnail-prev,
-  .thumbnail-next {
-    display: none;
-  }
-  
-  /* Thumbnail Pagination */
-  .thumbnail-pagination {
-    margin-top: 1rem;
-    text-align: center;
-  }
-  
-  .thumbnail-pagination .swiper-pagination-bullet {
-    width: 8px;
-    height: 8px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 50%;
-    margin: 0 3px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-  
-  .thumbnail-pagination .swiper-pagination-bullet-active {
-    background: #007aff;
-    transform: scale(1.2);
-  }
+  /* thumbnail pagination removed */
   
   /* Product Info Section */
   .product-info-section {
     padding: 1rem 0;
-    max-width: 400px;
   }
   
   .product-title {
     font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 15px;
-    color: #333;
-    line-height: 1.3;
-  }
-  
-  .product-price {
     margin-bottom: 15px;
   }
   
-  .current-price {
+  .product-price .current-price {
     font-size: 1.75rem;
     font-weight: 700;
     color: #007aff;
   }
   
-  .compare-price {
-    font-size: 1.25rem;
-    color: #999;
-    text-decoration: line-through;
-    margin-left: 0.5rem;
-  }
-  
-  .savings {
-    display: inline-block;
-    background: #e74c3c;
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-left: 0.5rem;
-  }
-  
   .product-description {
-    font-size: 1rem;
     line-height: 1.6;
-    color: #666;
     margin-bottom: 15px;
   }
   
-  /* Product Form */
   .product-form {
     display: flex;
     flex-direction: column;
     gap: 15px;
   }
-  
-  .variant-selector {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .quantity-selector {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
+
   .quantity-cart-row {
     display: flex;
     gap: 1rem;
     align-items: end;
-  }
-  
-  .quantity-cart-row .quantity-selector {
-    flex: 1;
-  }
-  
-  .quantity-cart-row .add-to-cart-btn {
-    flex-shrink: 0;
-  }
-  
-  .variant-selector label,
-  .quantity-selector label {
-    font-weight: 600;
-    color: #333;
-  }
-  
-  .variant-select,
-  .quantity-input {
-    padding: 0.75rem;
-    border: 2px solid #ddd;
-    border-radius: 6px;
-    font-size: 1rem;
-    transition: border-color 0.3s ease;
-  }
-  
-  .variant-select:focus,
-  .quantity-input:focus {
-    outline: none;
-    border-color: #007aff;
-  }
-  
-  .quantity-input {
-    width: 80px;
   }
   
   .add-to-cart-btn {
@@ -472,17 +338,11 @@
     padding: 1rem 2rem;
     border-radius: 6px;
     font-size: 1.125rem;
-    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
   }
   
   .add-to-cart-btn:hover:not(:disabled) {
     background: #0056cc;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
   }
   
   .add-to-cart-btn:disabled {
@@ -490,72 +350,17 @@
     cursor: not-allowed;
   }
   
-  /* Placeholder */
-  .product-image-placeholder {
-    width: 100%;
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f5f5f5;
-    border-radius: 12px;
-  }
-  
-  .placeholder-wrapper {
-    text-align: center;
-    padding: 2rem;
-  }
-  
-  .placeholder-svg {
-    width: 120px;
-    height: 120px;
-    opacity: 0.5;
-  }
-  
-  .placeholder-text {
-    margin-top: 1rem;
-    color: #666;
-    font-size: 0.9rem;
-  }
-  
   /* Responsive Design */
   @media screen and (max-width: 768px) {
     .product-page {
       padding: 1rem;
     }
-    
     .product-container {
       grid-template-columns: 1fr;
       gap: 2rem;
     }
-    
-    .product-title {
-      font-size: 1.5rem;
-    }
-    
-    .current-price {
-      font-size: 1.5rem;
-    }
-    
-    .thumbnail-swiper {
-      padding: 0 30px;
-    }
-    
-    .thumbnail-prev,
-    .thumbnail-next {
-      width: 28px;
-      height: 28px;
-      font-size: 12px;
-    }
-  }
-  
-  @media screen and (max-width: 480px) {
-    .product-page {
-      padding: 0.5rem;
-    }
-    
-    .thumbnail-swiper {
-      padding: 0 25px;
+    .product-images-section {
+      max-width: 80vw; /* Allow image column to fill width */
     }
   }
 {% endstylesheet %}
@@ -563,41 +368,31 @@
 {% javascript %}
   // Global gallery object to avoid sandbox issues
   window.productGallery = {
-    currentIndex: 0,
-    thumbnails: [],
     mainImage: null,
     thumbnailSwiper: null,
+    currentIndex: 0,
+    totalImages: 0,
     
     init: function() {
-      console.log('Initializing product gallery (global approach)');
-      
       const productPage = document.querySelector('.product-page');
-      if (!productPage) {
-        console.log('No product page found');
-        return;
+      if (!productPage || !document.querySelector('.thumbnail-swiper')) {
+        return; // Exit if no gallery is on the page
       }
       
       this.mainImage = document.querySelector('#main-product-image');
-      this.thumbnails = document.querySelectorAll('.thumbnail-image');
+      this.totalImages = document.querySelectorAll('.thumbnail-image').length;
       
-      console.log('Found', this.thumbnails.length, 'thumbnails');
-      
-      // Initialize Swiper
-      this.initSwiper(productPage);
-      
-      // Setup thumbnail clicks
-      this.setupThumbnails();
-      
-      // Update initial state
-      this.updateNavigationState();
-    },
-    
-    initSwiper: function(productPage) {
+      // Load Swiper.js script if not already available
       if (!window.Swiper) {
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js';
         script.onload = () => this.createSwiper(productPage);
         document.head.appendChild(script);
+
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css';
+        document.head.appendChild(link);
       } else {
         this.createSwiper(productPage);
       }
@@ -605,152 +400,138 @@
     
     createSwiper: function(productPage) {
       const thumbnailContainer = document.querySelector('.thumbnail-swiper');
-      if (!thumbnailContainer) return;
       
-      const slidesDesktop = Math.max(2, parseInt(productPage.dataset.slidesDesktop) || 4);
-      const slidesTablet = Math.max(2, parseInt(productPage.dataset.slidesTablet) || 3);
-      const slidesMobile = Math.max(2, parseInt(productPage.dataset.slidesMobile) || 2);
-      const enablePagination = productPage.dataset.enablePagination === 'true';
-      const spaceBetween = parseInt(productPage.dataset.spaceBetween) || 10;
+      // Get settings from Liquid data attributes
+      const slidesDesktop = parseInt(productPage.dataset.slidesDesktop, 10);
+      const slidesTablet = parseInt(productPage.dataset.slidesTablet, 10);
+      const slidesMobile = parseInt(productPage.dataset.slidesMobile, 10);
+      const spaceBetween = parseInt(productPage.dataset.spaceBetween, 10);
 
       this.thumbnailSwiper = new Swiper(thumbnailContainer, {
-        slidesPerView: slidesMobile,
-        spaceBetween: spaceBetween,
         loop: false,
+        spaceBetween: spaceBetween,
         grabCursor: true,
+        watchOverflow: true,
+        slidesPerGroup: 1,
+        
         breakpoints: {
+          0: { slidesPerView: slidesMobile },
           768: { slidesPerView: slidesTablet },
-          1024: { slidesPerView: slidesDesktop }
+          1024: { slidesPerView: slidesDesktop },
         },
-        pagination: enablePagination ? {
-          el: '.thumbnail-pagination',
-          clickable: true,
-          dynamicBullets: true,
-        } : false,
+        
+        // Navigation is now handled manually
+        
+        on: {
+          // Sync state when user swipes thumbnails directly
+          slideChange: (swiper) => {
+            // Check if the change was initiated by our code to prevent loops
+            if (swiper.activeIndex !== this.currentIndex) {
+              this.switchToImage(swiper.activeIndex);
+            }
+          },
+        }
       });
+      
+      // Setup thumbnail clicks and our custom navigation
+      this.setupThumbnails();
+      this.setupNavigation();
+      this.updateNavState(); // Set initial state
+    },
+    
+    // Function to handle custom navigation
+    setupNavigation: function() {
+        const nextBtn = document.querySelector('.main-image-next');
+        const prevBtn = document.querySelector('.main-image-prev');
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                if (this.currentIndex < this.totalImages - 1) {
+                    this.switchToImage(this.currentIndex + 1);
+                }
+            });
+        }
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                if (this.currentIndex > 0) {
+                    this.switchToImage(this.currentIndex - 1);
+                }
+            });
+        }
     },
     
     setupThumbnails: function() {
-      const self = this;
-      this.thumbnails.forEach(function(thumbnail, index) {
-        thumbnail.onclick = function() {
-          self.switchToImage(index);
-        };
+      const thumbnails = document.querySelectorAll('.thumbnail-image');
+      thumbnails.forEach((thumbnail) => {
+        thumbnail.addEventListener('click', (event) => {
+          const index = parseInt(event.currentTarget.dataset.index, 10);
+          this.switchToImage(index);
+        });
       });
     },
-    
-    prevImage: function() {
-      console.log('Prev clicked, current:', this.currentIndex);
-      if (this.currentIndex > 0) {
-        this.currentIndex--;
-        this.switchToImage(this.currentIndex);
-        this.ensureThumbnailVisible(this.currentIndex);
-        this.updateNavigationState();
-      }
-    },
-    
-    nextImage: function() {
-      console.log('Next clicked, current:', this.currentIndex);
-      if (this.currentIndex < this.thumbnails.length - 1) {
-        this.currentIndex++;
-        this.switchToImage(this.currentIndex);
-        this.ensureThumbnailVisible(this.currentIndex);
-        this.updateNavigationState();
-      }
-    },
-    
+
+    // Central function to update everything
     switchToImage: function(index) {
-      console.log('Switching to image', index);
-      this.currentIndex = index;
-      
-      const thumbnail = this.thumbnails[index];
-      if (!thumbnail || !this.mainImage) return;
-      
-      const newImageSrc = thumbnail.dataset.mainImage;
-      const newImageAlt = thumbnail.alt;
-      
-      this.mainImage.src = newImageSrc;
-      this.mainImage.alt = newImageAlt;
-      
-      this.updateActiveThumbnail(index);
-      this.ensureThumbnailVisible(index);
-      this.updateNavigationState();
+        this.currentIndex = index;
+        
+        // Update the main image
+        this.updateMainImage(this.currentIndex);
+        
+        // Move the thumbnail slider
+        if (this.thumbnailSwiper) {
+            this.thumbnailSwiper.slideTo(this.currentIndex);
+        }
+        
+        // Update the state of our navigation buttons
+        this.updateNavState();
     },
     
-    updateActiveThumbnail: function(activeIndex) {
+    updateMainImage: function(activeIndex) {
+      if (!this.mainImage) return;
+
+      const thumbnails = document.querySelectorAll('.thumbnail-image');
+      const activeThumbnail = thumbnails[activeIndex];
+      
+      if (activeThumbnail) {
+        this.mainImage.src = activeThumbnail.dataset.mainImage;
+        this.mainImage.alt = activeThumbnail.alt;
+      }
+      
       const thumbnailWrappers = document.querySelectorAll('.thumbnail-wrapper');
-      thumbnailWrappers.forEach(function(wrapper, index) {
-        if (index === activeIndex) {
-          wrapper.classList.add('active');
-        } else {
-          wrapper.classList.remove('active');
-        }
+      thumbnailWrappers.forEach((wrapper, index) => {
+        wrapper.classList.toggle('active', index === activeIndex);
       });
     },
-    
-    updateNavigationState: function() {
-      const prevBtn = document.querySelector('.main-image-prev');
-      const nextBtn = document.querySelector('.main-image-next');
-      
-      if (!prevBtn || !nextBtn) return;
-      
-      if (this.currentIndex <= 0) {
-        prevBtn.style.opacity = '0.3';
-        prevBtn.style.pointerEvents = 'none';
-      } else {
-        prevBtn.style.opacity = '1';
-        prevBtn.style.pointerEvents = 'auto';
-      }
-      
-      if (this.currentIndex >= this.thumbnails.length - 1) {
-        nextBtn.style.opacity = '0.3';
-        nextBtn.style.pointerEvents = 'none';
-      } else {
-        nextBtn.style.opacity = '1';
-        nextBtn.style.pointerEvents = 'auto';
-      }
-    },
-    
-    ensureThumbnailVisible: function(index) {
-      if (!this.thumbnailSwiper) return;
-      
-      const totalSlides = this.thumbnails.length;
-      const slideWidth = 120 + 10; // thumbnail width + gap
-      const containerWidth = this.thumbnailSwiper.el.clientWidth;
-      
-      console.log('DEBUG - thumbnail', index, 'containerWidth:', containerWidth, 'slideWidth:', slideWidth);
-      
-      // For the last thumbnail, calculate exact position to make it fully visible
-      if (index === totalSlides - 1) {
-        // Calculate how far we need to translate to show the last slide fully
-        const totalWidth = totalSlides * slideWidth;
-        const translateX = -(totalWidth - containerWidth);
-        
-        console.log('Last thumbnail - totalWidth:', totalWidth, 'translateX:', translateX);
-        
-        // Use setTranslate to directly position the swiper
-        this.thumbnailSwiper.setTranslate(translateX);
-        this.thumbnailSwiper.updateProgress();
-        this.thumbnailSwiper.updateSlidesClasses();
-      } else {
-        // For other thumbnails, use normal slideTo
-        const targetSlide = Math.max(0, index - 1);
-        console.log('Regular thumbnail - using slideTo:', targetSlide);
-        this.thumbnailSwiper.slideTo(targetSlide, 300);
-      }
+
+    // NEW: Function to manually control button disabled state
+    updateNavState: function() {
+        const nextBtn = document.querySelector('.main-image-next');
+        const prevBtn = document.querySelector('.main-image-prev');
+        if (!nextBtn || !prevBtn) return;
+
+        // Handle Previous Button
+        if (this.currentIndex === 0) {
+            prevBtn.classList.add('swiper-button-disabled');
+        } else {
+            prevBtn.classList.remove('swiper-button-disabled');
+        }
+
+        // Handle Next Button
+        if (this.currentIndex === this.totalImages - 1) {
+            nextBtn.classList.add('swiper-button-disabled');
+        } else {
+            nextBtn.classList.remove('swiper-button-disabled');
+        }
     }
   };
 
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      window.productGallery.init();
-    });
+    document.addEventListener('DOMContentLoaded', () => window.productGallery.init());
   } else {
     window.productGallery.init();
   }
 {% endjavascript %}
-
 
 {% schema %}
 {
@@ -768,7 +549,7 @@
       "max": 6,
       "step": 1,
       "default": 4,
-      "info": "Number of thumbnail images shown at once on desktop"
+      "info": "Number of thumbnail images shown at once on screens wider than 1024px"
     },
     {
       "type": "range",
@@ -778,7 +559,7 @@
       "max": 4,
       "step": 1,
       "default": 3,
-      "info": "Number of thumbnail images shown at once on tablet"
+      "info": "Number of thumbnail images shown at once on screens wider than 768px"
     },
     {
       "type": "range",
@@ -788,7 +569,7 @@
       "max": 5,
       "step": 1,
       "default": 2,
-      "info": "Number of thumbnail images shown at once on mobile"
+      "info": "Number of thumbnail images shown at once on mobile screens"
     },
     {
       "type": "header",
@@ -798,15 +579,13 @@
       "type": "checkbox",
       "id": "enable_pagination",
       "label": "Show pagination dots",
-      "default": true,
-      "info": "Display dots below thumbnails for navigation"
+      "default": true
     },
     {
       "type": "checkbox",
       "id": "enable_navigation",
       "label": "Show navigation arrows",
-      "default": true,
-      "info": "Display left/right arrows for thumbnail navigation"
+      "default": true
     },
     {
       "type": "header",
@@ -818,10 +597,9 @@
       "label": "Space between thumbnails",
       "min": 5,
       "max": 30,
-      "step": 5,
+      "step": 1,
       "unit": "px",
-      "default": 10,
-      "info": "Gap between thumbnail images"
+      "default": 10
     }
   ],
   "presets": [
