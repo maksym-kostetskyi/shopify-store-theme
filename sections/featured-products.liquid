@@ -1,9 +1,13 @@
 {% comment %}
   Featured Products Section - displays a grid of featured products
-  with links to individual product pages to showcase the Swiper gallery
+  with adaptive pagination and responsive design
 {% endcomment %}
 
-<div class="featured-products-section">
+<div class="featured-products-section" 
+     data-section-id="{{ section.id }}"
+     data-desktop-per-page="{{ section.settings.desktop_per_page | default: 6 }}"
+     data-tablet-per-page="{{ section.settings.tablet_per_page | default: 4 }}"
+     data-mobile-per-page="{{ section.settings.mobile_per_page | default: 4 }}">
   <div class="container">
     {% if section.settings.heading != blank %}
       <h2 class="featured-products__heading">{{ section.settings.heading }}</h2>
@@ -13,81 +17,76 @@
       <p class="featured-products__description">{{ section.settings.description }}</p>
     {% endif %}
 
-    <div class="featured-products-grid">
-      {% assign products_to_show = section.settings.products_to_show | default: 8 %}
-      {% assign featured_collection = collections[section.settings.collection] %}
-      
-      {% if featured_collection and featured_collection.products.size > 0 %}
-        {% for product in featured_collection.products limit: products_to_show %}
-          <div class="product-card">
-            <a href="{{ product.url }}" class="product-card__link">
-              {% if product.featured_image %}
-                <div class="product-card__image">
-                  <img 
-                    src="{{ product.featured_image | image_url: width: 400 }}" 
-                    alt="{{ product.featured_image.alt | escape }}"
-                    loading="lazy"
-                    width="400"
-                    height="400"
-                  >
-                </div>
-              {% else %}
-                <div class="product-card__placeholder">
-                  {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
-                </div>
-              {% endif %}
-              
-              <div class="product-card__content">
-                <h3 class="product-card__title">{{ product.title }}</h3>
-                <p class="product-card__price">{{ product.price | money }}</p>
-                {% if product.compare_at_price > product.price %}
-                  <p class="product-card__compare-price">{{ product.compare_at_price | money }}</p>
-                {% endif %}
-              </div>
-            </a>
+    <!-- Pagination Options Button -->
+    <div class="pagination-options" id="pagination-options-container">
+      <button class="pagination-options-btn" id="pagination-options-btn">
+        <span class="options-text">Products per page: <span id="current-per-page">6</span></span>
+        <span class="options-arrow">▼</span>
+      </button>
+      <div class="pagination-options-dropdown" id="pagination-options-dropdown">
+        <div class="option-group">
+          <label>Products per page:</label>
+          <div class="option-buttons" id="option-buttons-container">
+            <!-- Options will be populated by JavaScript -->
           </div>
-        {% endfor %}
-      {% else %}
-        {% comment %} Fallback to all products if no collection is selected {% endcomment %}
-        {% for product in collections.all.products limit: products_to_show %}
-          <div class="product-card">
-            <a href="{{ product.url }}" class="product-card__link">
-              {% if product.featured_image %}
-                <div class="product-card__image">
-                  <img 
-                    src="{{ product.featured_image | image_url: width: 400 }}" 
-                    alt="{{ product.featured_image.alt | escape }}"
-                    loading="lazy"
-                    width="400"
-                    height="400"
-                  >
-                </div>
-              {% else %}
-                <div class="product-card__placeholder">
-                  {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
-                </div>
-              {% endif %}
-              
-              <div class="product-card__content">
-                <h3 class="product-card__title">{{ product.title }}</h3>
-                <p class="product-card__price">{{ product.price | money }}</p>
-                {% if product.compare_at_price > product.price %}
-                  <p class="product-card__compare-price">{{ product.compare_at_price | money }}</p>
-                {% endif %}
-              </div>
-            </a>
-          </div>
-        {% endfor %}
-      {% endif %}
-    </div>
-    
-    {% if section.settings.show_view_all and featured_collection %}
-      <div class="featured-products__view-all">
-        <a href="{{ featured_collection.url }}" class="btn btn--secondary">
-          View All Products
-        </a>
+        </div>
       </div>
-    {% endif %}
+    </div>
+
+    {% assign featured_collection = collections[section.settings.collection] %}
+    {% assign products_source = featured_collection.products | default: collections.all.products %}
+    
+    <div class="products-pagination-wrapper">
+      <div class="featured-products-grid" id="products-grid">
+        {% for product in products_source limit: 50 %}
+          <div class="product-card" data-product-index="{{ forloop.index0 }}">
+            <a href="{{ product.url }}" class="product-card__link">
+              {% if product.featured_image %}
+                <div class="product-card__image">
+                  <img 
+                    src="{{ product.featured_image | image_url: width: 400 }}" 
+                    alt="{{ product.featured_image.alt | escape }}"
+                    loading="lazy"
+                    width="400"
+                    height="400"
+                  >
+                </div>
+              {% else %}
+                <div class="product-card__placeholder">
+                  {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+                </div>
+              {% endif %}
+              
+              <div class="product-card__content">
+                <h3 class="product-card__title">{{ product.title }}</h3>
+                <p class="product-card__price">{{ product.price | money }}</p>
+                {% if product.compare_at_price > product.price %}
+                  <p class="product-card__compare-price">{{ product.compare_at_price | money }}</p>
+                {% endif %}
+              </div>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination Controls -->
+      <div class="pagination-controls" id="pagination-controls">
+        <div class="pagination-buttons">
+          <button class="pagination-btn pagination-prev" id="prev-btn" disabled>← Previous</button>
+          <div class="pagination-numbers" id="pagination-numbers"></div>
+          <button class="pagination-btn pagination-next" id="next-btn">Next →</button>
+        </div>
+        <div class="pagination-info">
+          <span id="pagination-info-text"></span>
+        </div>
+      </div>
+
+      <!-- View All Toggle -->
+      <div class="view-all-controls">
+        <button class="btn btn--secondary" id="view-all-btn">View All Products</button>
+        <button class="btn btn--secondary" id="view-paginated-btn" style="display: none;">Collapse</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -125,14 +124,22 @@
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 2rem;
     margin-bottom: 3rem;
+    justify-items: center;
   }
   
   .product-card {
+    display: none; /* Hidden by default, shown by JS pagination */
+    width: 100%;
+    max-width: 350px; /* Prevent cards from getting too wide */
     background: white;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .product-card.visible {
+    display: block;
   }
   
   .product-card:hover {
@@ -229,8 +236,200 @@
     background: var(--color-primary, #007aff);
     color: white;
   }
-  
+
+  /* Pagination Controls */
+  .pagination-controls {
+    margin: 2rem 0;
+    text-align: center;
+  }
+
+  .pagination-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .pagination-btn {
+    padding: 0.75rem 1.5rem;
+    border: 2px solid var(--color-primary, #007aff);
+    background: transparent;
+    color: var(--color-primary, #007aff);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .pagination-btn:hover:not(:disabled) {
+    background: var(--color-primary, #007aff);
+    color: white;
+  }
+
+  .pagination-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .pagination-numbers {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .pagination-number {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #e0e0e0;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pagination-number:hover {
+    border-color: var(--color-primary, #007aff);
+    color: var(--color-primary, #007aff);
+  }
+
+  .pagination-number.active {
+    background: var(--color-primary, #007aff);
+    border-color: var(--color-primary, #007aff);
+    color: white;
+  }
+
+  .pagination-info {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary, #666);
+  }
+
+  .view-all-controls {
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  #view-all-btn, #view-paginated-btn {
+    cursor: pointer;
+  }
+
+  /* View All Mode */
+  .view-all-mode .pagination-controls {
+    display: none;
+  }
+
+  .view-all-mode .product-card {
+    display: block;
+  }
+
+  .view-all-mode .product-card.visible {
+    display: block;
+  }
+
+  /* Pagination Options Dropdown */
+  .pagination-options {
+    margin-bottom: 2rem;
+    position: relative;
+    display: inline-block;
+  }
+
+  .pagination-options-btn {
+    background: white;
+    border: 2px solid var(--color-primary, #007aff);
+    color: var(--color-primary, #007aff);
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+  }
+
+  .pagination-options-btn:hover {
+    background: var(--color-primary, #007aff);
+    color: white;
+  }
+
+  .options-arrow {
+    transition: transform 0.3s ease;
+    font-size: 0.8rem;
+  }
+
+  .pagination-options-btn.open .options-arrow {
+    transform: rotate(180deg);
+  }
+
+  .pagination-options-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 1rem;
+    min-width: 200px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: none;
+    z-index: 10;
+  }
+
+  .pagination-options-dropdown.open {
+    display: block;
+  }
+
+  .option-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+
+  .option-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .option-btn {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e0e0e0;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+  }
+
+  .option-btn:hover {
+    border-color: var(--color-primary, #007aff);
+    color: var(--color-primary, #007aff);
+  }
+
+  .option-btn.active {
+    background: var(--color-primary, #007aff);
+    border-color: var(--color-primary, #007aff);
+    color: white;
+  }
+
   /* Responsive Design */
+  @media screen and (max-width: 1024px) {
+    .featured-products-grid {
+      grid-template-columns: repeat(2, 1fr);
+      max-width: 700px; /* Limit total width to prevent cards from being too wide */
+      margin: 0 auto 3rem auto;
+    }
+    
+    .product-card {
+      max-width: 320px; /* Slightly smaller max-width for tablets */
+    }
+  }
+
   @media screen and (max-width: 768px) {
     .featured-products-section {
       padding: 40px 0;
@@ -241,21 +440,366 @@
     }
     
     .featured-products-grid {
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: 1.5rem;
     }
     
     .container {
       padding: 0 15px;
     }
+
+    .pagination-buttons {
+      gap: 0.25rem;
+    }
+
+    .pagination-btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+    }
+
+    .pagination-number {
+      width: 35px;
+      height: 35px;
+      font-size: 0.9rem;
+    }
   }
   
   @media screen and (max-width: 480px) {
     .featured-products-grid {
       grid-template-columns: 1fr;
+      gap: 1rem;
+      max-width: 400px; /* Prevent single column from being too wide */
+      margin: 0 auto 3rem auto;
+    }
+    
+    .product-card {
+      max-width: 100%; /* Full width on mobile but constrained by grid max-width */
+    }
+
+    .pagination-buttons {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .pagination-numbers {
+      order: -1;
     }
   }
+
+  /* Hide pagination when not needed */
+  .pagination-hidden {
+    display: none !important;
+  }
 {% endstylesheet %}
+
+{% javascript %}
+window.productsPagination = {
+  currentPage: 1,
+  totalProducts: 0,
+  productsPerPage: 6,
+  totalPages: 0,
+  allProducts: [],
+  isViewAllMode: false,
+  currentOptions: [],
+  defaultPerPage: 6,
+  
+  init: function() {
+    const section = document.querySelector('.featured-products-section');
+    if (!section) return;
+    
+    this.allProducts = Array.from(document.querySelectorAll('.product-card'));
+    this.totalProducts = this.allProducts.length;
+    
+    if (this.totalProducts === 0) return;
+    
+    // Initialize pagination settings in the correct order
+    this.generatePaginationOptions(); // Sets defaultPerPage
+    this.productsPerPage = this.defaultPerPage; // Explicitly set initial value
+    this.calculateTotalPages();
+    this.setupEventListeners();
+    this.updateVisibility();
+    this.showPage(1);
+    
+    // Handle window resize for responsive pagination
+    window.addEventListener('resize', () => {
+      this.generatePaginationOptions();
+      this.updateProductsPerPage();
+      this.calculateTotalPages();
+      this.updateVisibility();
+      if (!this.isViewAllMode) {
+        this.showPage(this.currentPage);
+      }
+    });
+  },
+  
+  generatePaginationOptions: function() {
+    const section = document.querySelector('.featured-products-section');
+    const width = window.innerWidth;
+    const container = document.getElementById('option-buttons-container');
+    if (!container) return;
+    
+    let options = [];
+    
+    if (width >= 1025) {
+      // Desktop: 3 columns, default 3
+      this.defaultPerPage = 3;
+      options = [3, 6, 9, 12];
+    } else if (width >= 769) {
+      // Tablet: 2 columns, default 2
+      this.defaultPerPage = 2;
+      options = [2, 4, 6, 8];
+    } else {
+      // Mobile: 1 column, default 2
+      this.defaultPerPage = 2;
+      options = [1, 2, 3, 4];
+    }
+    
+    this.currentOptions = options;
+    
+    // Clear existing options
+    container.innerHTML = '';
+    
+    // Create option buttons
+    options.forEach((option, index) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = option;
+      btn.dataset.value = option;
+      
+      // Set default as active
+      if (option === this.defaultPerPage) {
+        btn.classList.add('active');
+        this.productsPerPage = option;
+      }
+      
+      btn.addEventListener('click', () => this.selectOption(btn, option));
+      container.appendChild(btn);
+    });
+    
+    this.updateCurrentPerPageDisplay();
+  },
+  
+  selectOption: function(selectedBtn, value) {
+    // Remove active class from all buttons
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    
+    // Add active class to selected button
+    selectedBtn.classList.add('active');
+    
+    // Update pagination
+    this.productsPerPage = value;
+    this.calculateTotalPages();
+    this.updateVisibility();
+    this.showPage(1);
+    this.updateCurrentPerPageDisplay();
+    
+    // Close dropdown
+    const optionsBtn = document.getElementById('pagination-options-btn');
+    const optionsDropdown = document.getElementById('pagination-options-dropdown');
+    optionsBtn.classList.remove('open');
+    optionsDropdown.classList.remove('open');
+  },
+  
+  updateCurrentPerPageDisplay: function() {
+    const display = document.getElementById('current-per-page');
+    if (display) {
+      display.textContent = this.productsPerPage;
+    }
+  },
+  
+  updateVisibility: function() {
+    const paginationContainer = document.getElementById('pagination-controls');
+    const optionsContainer = document.getElementById('pagination-options-container');
+    
+    // Show pagination only if there are more products than can fit on one page
+    const needsPagination = this.totalProducts > this.productsPerPage && this.totalPages > 1;
+    
+    if (paginationContainer) {
+      paginationContainer.style.display = needsPagination && !this.isViewAllMode ? 'block' : 'none';
+    }
+    
+    if (optionsContainer) {
+      // Show options only if there are enough products to make pagination meaningful
+      optionsContainer.style.display = this.totalProducts > Math.min(...this.currentOptions) ? 'block' : 'none';
+    }
+  },
+  
+  updateProductsPerPage: function() {
+    // Products per page is now set by the option selection
+    // This function keeps the current value unless no option is selected
+    if (!this.productsPerPage) {
+      this.productsPerPage = this.defaultPerPage;
+    }
+  },
+  
+  calculateTotalPages: function() {
+    this.totalPages = Math.ceil(this.totalProducts / this.productsPerPage);
+  },
+  
+  setupEventListeners: function() {
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const viewAllBtn = document.getElementById('view-all-btn');
+    const viewPaginatedBtn = document.getElementById('view-paginated-btn');
+    const optionsBtn = document.getElementById('pagination-options-btn');
+    const optionsDropdown = document.getElementById('pagination-options-dropdown');
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => this.previousPage());
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => this.nextPage());
+    }
+    
+    if (viewAllBtn) {
+      viewAllBtn.addEventListener('click', () => this.toggleViewAll(true));
+    }
+    
+    if (viewPaginatedBtn) {
+      viewPaginatedBtn.addEventListener('click', () => this.toggleViewAll(false));
+    }
+    
+    // Pagination options dropdown
+    if (optionsBtn && optionsDropdown) {
+      optionsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        optionsBtn.classList.toggle('open');
+        optionsDropdown.classList.toggle('open');
+      });
+      
+      // Close dropdown when clicking outside
+      document.addEventListener('click', () => {
+        optionsBtn.classList.remove('open');
+        optionsDropdown.classList.remove('open');
+      });
+      
+      optionsDropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
+  },
+  
+  showPage: function(page) {
+    if (this.isViewAllMode) return;
+    
+    this.currentPage = page;
+    const startIndex = (page - 1) * this.productsPerPage;
+    const endIndex = startIndex + this.productsPerPage;
+    
+    // Hide all products first
+    this.allProducts.forEach(product => {
+      product.classList.remove('visible');
+    });
+    
+    // Show products for current page
+    for (let i = startIndex; i < endIndex && i < this.totalProducts; i++) {
+      if (this.allProducts[i]) {
+        this.allProducts[i].classList.add('visible');
+      }
+    }
+    
+    this.updatePaginationControls();
+    this.updatePaginationInfo();
+    this.updateVisibility();
+  },
+  
+  updatePaginationControls: function() {
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const numbersContainer = document.getElementById('pagination-numbers');
+    
+    // Update prev/next buttons
+    if (prevBtn) {
+      prevBtn.disabled = this.currentPage === 1;
+    }
+    
+    if (nextBtn) {
+      nextBtn.disabled = this.currentPage === this.totalPages;
+    }
+    
+    // Update page numbers
+    if (numbersContainer) {
+      numbersContainer.innerHTML = '';
+      
+      for (let i = 1; i <= this.totalPages; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.className = 'pagination-number';
+        pageBtn.textContent = i;
+        pageBtn.addEventListener('click', () => this.showPage(i));
+        
+        if (i === this.currentPage) {
+          pageBtn.classList.add('active');
+        }
+        
+        numbersContainer.appendChild(pageBtn);
+      }
+    }
+  },
+  
+  updatePaginationInfo: function() {
+    const infoElement = document.getElementById('pagination-info-text');
+    if (!infoElement) return;
+    
+    if (this.isViewAllMode) {
+      infoElement.textContent = `Showing all ${this.totalProducts} products`;
+    } else {
+      const startIndex = (this.currentPage - 1) * this.productsPerPage + 1;
+      const endIndex = Math.min(this.currentPage * this.productsPerPage, this.totalProducts);
+      infoElement.textContent = `Showing ${startIndex}-${endIndex} of ${this.totalProducts} products`;
+    }
+  },
+  
+  previousPage: function() {
+    if (this.currentPage > 1) {
+      this.showPage(this.currentPage - 1);
+    }
+  },
+  
+  nextPage: function() {
+    if (this.currentPage < this.totalPages) {
+      this.showPage(this.currentPage + 1);
+    }
+  },
+  
+  toggleViewAll: function(enable) {
+    const section = document.querySelector('.featured-products-section');
+    const paginationControls = document.getElementById('pagination-controls');
+    const viewAllBtn = document.getElementById('view-all-btn');
+    const viewPaginatedBtn = document.getElementById('view-paginated-btn');
+    
+    this.isViewAllMode = enable;
+    
+    if (enable) {
+      // Show all products
+      section.classList.add('view-all-mode');
+      this.allProducts.forEach(product => {
+        product.classList.add('visible');
+      });
+      viewAllBtn.style.display = 'none';
+      viewPaginatedBtn.style.display = 'inline-block';
+    } else {
+      // Return to pagination
+      section.classList.remove('view-all-mode');
+      viewAllBtn.style.display = 'inline-block';
+      viewPaginatedBtn.style.display = 'none';
+      this.showPage(1);
+    }
+    
+    this.updateVisibility();
+    this.updatePaginationInfo();
+  }
+};
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => window.productsPagination.init());
+} else {
+  window.productsPagination.init();
+}
+{% endjavascript %}
 
 {% schema %}
 {
@@ -280,19 +824,38 @@
       "info": "Select a collection to feature products from. Leave empty to show all products."
     },
     {
-      "type": "range",
-      "id": "products_to_show",
-      "label": "Number of products to show",
-      "min": 2,
-      "max": 12,
-      "step": 2,
-      "default": 8
+      "type": "header",
+      "content": "Pagination Settings"
     },
     {
-      "type": "checkbox",
-      "id": "show_view_all",
-      "label": "Show 'View All' button",
-      "default": true
+      "type": "range",
+      "id": "desktop_per_page",
+      "label": "Products per page (Desktop)",
+      "min": 3,
+      "max": 12,
+      "step": 3,
+      "default": 6,
+      "info": "Number of products to show per page on desktop (3 columns)"
+    },
+    {
+      "type": "range",
+      "id": "tablet_per_page",
+      "label": "Products per page (Tablet)",
+      "min": 2,
+      "max": 8,
+      "step": 2,
+      "default": 4,
+      "info": "Number of products to show per page on tablet (2 columns)"
+    },
+    {
+      "type": "range",
+      "id": "mobile_per_page",
+      "label": "Products per page (Mobile)",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 2,
+      "info": "Number of products to show per page on mobile (1 column)"
     }
   ],
   "presets": [
